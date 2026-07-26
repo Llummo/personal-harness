@@ -10,6 +10,10 @@ def _client() -> ClickUpClient:
     return ClickUpClient(Config.from_env().clickup_api_token)
 
 
+# ClickUp's native priority field is an integer: 1=urgent ... 4=low.
+CLICKUP_PRIORITY = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
+
+
 @click.group()
 def cli():
     """Personal harness: ClickUp ticket automation and QA tooling."""
@@ -63,11 +67,20 @@ def tasks(list_id: str):
 @click.option("--list-id", default=None, help="Defaults to CLICKUP_LIST_ID from .env.")
 @click.option("--name", required=True)
 @click.option("--description", default=None)
-def create_task(list_id: str | None, name: str, description: str | None):
+@click.option(
+    "--priority",
+    type=click.Choice(list(CLICKUP_PRIORITY)),
+    default=None,
+    help="ClickUp priority: urgent, high, normal, or low.",
+)
+def create_task(list_id: str | None, name: str, description: str | None, priority: str | None):
     list_id = list_id or Config.from_env().clickup_list_id
     if not list_id:
         raise click.UsageError("Provide --list-id or set CLICKUP_LIST_ID in .env.")
-    task = _client().create_task(list_id, name, description)
+    fields = {}
+    if priority is not None:
+        fields["priority"] = CLICKUP_PRIORITY[priority]
+    task = _client().create_task(list_id, name, description, **fields)
     click.echo(json.dumps(task, indent=2))
 
 
