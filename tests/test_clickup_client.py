@@ -34,6 +34,21 @@ def test_get_task():
 
 
 @responses.activate
+def test_get_tasks():
+    responses.add(
+        responses.GET,
+        "https://api.clickup.com/api/v2/list/list123/task",
+        json={"tasks": [{"id": "task1", "name": "Do the thing"}]},
+        status=200,
+    )
+    client = ClickUpClient(api_token="fake-token")
+
+    tasks = client.get_tasks("list123")
+
+    assert tasks == [{"id": "task1", "name": "Do the thing"}]
+
+
+@responses.activate
 def test_create_task():
     responses.add(
         responses.POST,

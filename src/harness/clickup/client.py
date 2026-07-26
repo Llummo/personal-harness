@@ -47,6 +47,9 @@ class ClickUpClient:
     def get_task(self, task_id: str) -> dict:
         return self._request("GET", f"/task/{task_id}")
 
+    def get_tasks(self, list_id: str) -> list[dict]:
+        return self._request("GET", f"/list/{list_id}/task")["tasks"]
+
     def create_task(
         self,
         list_id: str,

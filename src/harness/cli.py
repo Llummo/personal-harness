@@ -47,6 +47,12 @@ def get_task(task_id: str):
     click.echo(json.dumps(_client().get_task(task_id), indent=2))
 
 
+@clickup.command("tasks")
+@click.option("--list-id", required=True)
+def tasks(list_id: str):
+    click.echo(json.dumps(_client().get_tasks(list_id), indent=2))
+
+
 @clickup.command("create-task")
 @click.option("--list-id", default=None, help="Defaults to CLICKUP_LIST_ID from .env.")
 @click.option("--name", required=True)
