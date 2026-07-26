@@ -41,6 +41,12 @@ def lists(space_id: str | None, folder_id: str | None):
     click.echo(json.dumps(_client().get_lists(space_id=space_id, folder_id=folder_id), indent=2))
 
 
+@clickup.command("get-task")
+@click.option("--task-id", required=True)
+def get_task(task_id: str):
+    click.echo(json.dumps(_client().get_task(task_id), indent=2))
+
+
 @clickup.command("create-task")
 @click.option("--list-id", default=None, help="Defaults to CLICKUP_LIST_ID from .env.")
 @click.option("--name", required=True)

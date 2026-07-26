@@ -44,6 +44,9 @@ class ClickUpClient:
             return self._request("GET", f"/space/{space_id}/list")["lists"]
         raise ValueError("Provide either space_id or folder_id")
 
+    def get_task(self, task_id: str) -> dict:
+        return self._request("GET", f"/task/{task_id}")
+
     def create_task(
         self,
         list_id: str,
