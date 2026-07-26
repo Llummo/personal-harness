@@ -34,6 +34,21 @@ def test_get_task():
 
 
 @responses.activate
+def test_get_folders():
+    responses.add(
+        responses.GET,
+        "https://api.clickup.com/api/v2/space/space123/folder",
+        json={"folders": [{"id": "folder1", "name": "Project-1"}]},
+        status=200,
+    )
+    client = ClickUpClient(api_token="fake-token")
+
+    folders = client.get_folders("space123")
+
+    assert folders == [{"id": "folder1", "name": "Project-1"}]
+
+
+@responses.activate
 def test_get_tasks():
     responses.add(
         responses.GET,

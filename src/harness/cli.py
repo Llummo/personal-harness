@@ -34,6 +34,12 @@ def spaces(team_id: str | None):
     click.echo(json.dumps(_client().get_spaces(team_id), indent=2))
 
 
+@clickup.command("folders")
+@click.option("--space-id", required=True)
+def folders(space_id: str):
+    click.echo(json.dumps(_client().get_folders(space_id), indent=2))
+
+
 @clickup.command("lists")
 @click.option("--space-id", default=None)
 @click.option("--folder-id", default=None)
