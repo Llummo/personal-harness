@@ -15,11 +15,19 @@ Apps). `.env` is gitignored — never commit real tokens.
 
 ## Usage
 
+`spaces` and `create-task` fall back to `CLICKUP_TEAM_ID` / `CLICKUP_LIST_ID` from
+`.env` when `--team-id` / `--list-id` are omitted, so once `.env` is filled in you
+can skip them:
+
 ```bash
 ./.venv/bin/harness clickup teams
-./.venv/bin/harness clickup spaces --team-id <team_id>
+./.venv/bin/harness clickup spaces                       # uses CLICKUP_TEAM_ID
 ./.venv/bin/harness clickup lists --space-id <space_id>
-./.venv/bin/harness clickup create-task --list-id <list_id> --name "Ticket title" --description "..."
+./.venv/bin/harness clickup create-task --name "Ticket title" --description "..."  # uses CLICKUP_LIST_ID
+
+# or override either explicitly:
+./.venv/bin/harness clickup spaces --team-id <team_id>
+./.venv/bin/harness clickup create-task --list-id <list_id> --name "..." --description "..."
 ```
 
 ## Layout

@@ -26,8 +26,11 @@ def teams():
 
 
 @clickup.command("spaces")
-@click.option("--team-id", required=True)
-def spaces(team_id: str):
+@click.option("--team-id", default=None, help="Defaults to CLICKUP_TEAM_ID from .env.")
+def spaces(team_id: str | None):
+    team_id = team_id or Config.from_env().clickup_team_id
+    if not team_id:
+        raise click.UsageError("Provide --team-id or set CLICKUP_TEAM_ID in .env.")
     click.echo(json.dumps(_client().get_spaces(team_id), indent=2))
 
 
@@ -39,10 +42,13 @@ def lists(space_id: str | None, folder_id: str | None):
 
 
 @clickup.command("create-task")
-@click.option("--list-id", required=True)
+@click.option("--list-id", default=None, help="Defaults to CLICKUP_LIST_ID from .env.")
 @click.option("--name", required=True)
 @click.option("--description", default=None)
-def create_task(list_id: str, name: str, description: str | None):
+def create_task(list_id: str | None, name: str, description: str | None):
+    list_id = list_id or Config.from_env().clickup_list_id
+    if not list_id:
+        raise click.UsageError("Provide --list-id or set CLICKUP_LIST_ID in .env.")
     task = _client().create_task(list_id, name, description)
     click.echo(json.dumps(task, indent=2))
 
