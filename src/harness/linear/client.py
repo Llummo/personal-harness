@@ -94,6 +94,8 @@ class LinearClient:
             id identifier title description priority dueDate
             state { id name type }
             assignee { id name email }
+            parent { id identifier title }
+            children { nodes { id identifier title } }
           }
         }
         """
@@ -109,6 +111,7 @@ class LinearClient:
         assignee_id: str | None = None,
         due_date: str | None = None,
         project_id: str | None = None,
+        parent_id: str | None = None,
     ) -> dict:
         query = """
         mutation($input: IssueCreateInput!) {
@@ -119,6 +122,7 @@ class LinearClient:
               state { id name }
               assignee { id name email }
               dueDate
+              parent { id identifier }
             }
           }
         }
@@ -134,6 +138,9 @@ class LinearClient:
             issue_input["dueDate"] = due_date
         if project_id:
             issue_input["projectId"] = project_id
+        if parent_id:
+            # Linear models sub-issues as a parent link on the child.
+            issue_input["parentId"] = parent_id
 
         result = self._request(query, {"input": issue_input})["issueCreate"]
         if not result.get("success"):

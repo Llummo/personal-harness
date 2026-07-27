@@ -80,6 +80,7 @@ def tasks(list_id: str):
 )
 @click.option("--assignees", default=None, help="Comma-separated ClickUp user IDs.")
 @click.option("--due-date", default=None, type=int, help="Due date as a Unix timestamp in milliseconds.")
+@click.option("--parent", default=None, help="ClickUp task id to nest this task under as a subtask.")
 def create_task(
     list_id: str | None,
     name: str,
@@ -87,6 +88,7 @@ def create_task(
     priority: str | None,
     assignees: str | None,
     due_date: int | None,
+    parent: str | None,
 ):
     list_id = list_id or Config.from_env().clickup_list_id
     if not list_id:
@@ -98,6 +100,8 @@ def create_task(
         fields["assignees"] = [int(a) for a in assignees.split(",") if a.strip()]
     if due_date is not None:
         fields["due_date"] = due_date
+    if parent:
+        fields["parent"] = parent
     task = _client().create_task(list_id, name, description, **fields)
     click.echo(json.dumps(task, indent=2))
 
@@ -169,6 +173,7 @@ def linear_get_issue(issue_id: str):
 @click.option("--assignee-id", default=None, help="Linear user id to assign the issue to.")
 @click.option("--due-date", default=None, help="Due date as an ISO date, e.g. 2026-08-24.")
 @click.option("--project-id", default=None)
+@click.option("--parent-id", default=None, help="Linear issue id to nest this issue under as a sub-issue.")
 def linear_create_issue(
     team_id: str,
     title: str,
@@ -177,6 +182,7 @@ def linear_create_issue(
     assignee_id: str | None,
     due_date: str | None,
     project_id: str | None,
+    parent_id: str | None,
 ):
     issue = _linear_client().create_issue(
         team_id,
@@ -186,6 +192,7 @@ def linear_create_issue(
         assignee_id=assignee_id,
         due_date=due_date,
         project_id=project_id,
+        parent_id=parent_id,
     )
     click.echo(json.dumps(issue, indent=2))
 

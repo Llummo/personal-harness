@@ -1,3 +1,5 @@
+import json
+
 import pytest
 import responses
 
@@ -140,3 +142,43 @@ def test_http_error_raises():
 
     with pytest.raises(LinearAPIError, match="401"):
         client.get_teams()
+
+
+@responses.activate
+def test_create_issue_sends_parent_id_for_subissues():
+    captured = {}
+
+    def callback(request):
+        captured.update(json.loads(request.body))
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"data": {"issueCreate": {"success": True, "issue": {"id": "i2", "identifier": "SIG-2"}}}}),
+        )
+
+    responses.add_callback(responses.POST, API_URL, callback=callback, content_type="application/json")
+
+    client = LinearClient("lin_api_test")
+    client.create_issue("team-1", "Child issue", "desc", parent_id="i1")
+
+    assert captured["variables"]["input"]["parentId"] == "i1"
+
+
+@responses.activate
+def test_create_issue_omits_parent_id_when_not_given():
+    captured = {}
+
+    def callback(request):
+        captured.update(json.loads(request.body))
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"data": {"issueCreate": {"success": True, "issue": {"id": "i1"}}}}),
+        )
+
+    responses.add_callback(responses.POST, API_URL, callback=callback, content_type="application/json")
+
+    client = LinearClient("lin_api_test")
+    client.create_issue("team-1", "Top level issue")
+
+    assert "parentId" not in captured["variables"]["input"]
