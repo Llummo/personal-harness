@@ -73,13 +73,26 @@ def tasks(list_id: str):
     default=None,
     help="ClickUp priority: urgent, high, normal, or low.",
 )
-def create_task(list_id: str | None, name: str, description: str | None, priority: str | None):
+@click.option("--assignees", default=None, help="Comma-separated ClickUp user IDs.")
+@click.option("--due-date", default=None, type=int, help="Due date as a Unix timestamp in milliseconds.")
+def create_task(
+    list_id: str | None,
+    name: str,
+    description: str | None,
+    priority: str | None,
+    assignees: str | None,
+    due_date: int | None,
+):
     list_id = list_id or Config.from_env().clickup_list_id
     if not list_id:
         raise click.UsageError("Provide --list-id or set CLICKUP_LIST_ID in .env.")
     fields = {}
     if priority is not None:
         fields["priority"] = CLICKUP_PRIORITY[priority]
+    if assignees:
+        fields["assignees"] = [int(a) for a in assignees.split(",") if a.strip()]
+    if due_date is not None:
+        fields["due_date"] = due_date
     task = _client().create_task(list_id, name, description, **fields)
     click.echo(json.dumps(task, indent=2))
 

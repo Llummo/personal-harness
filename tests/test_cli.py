@@ -69,6 +69,41 @@ def test_create_task_rejects_invalid_priority(monkeypatch):
     assert result.exit_code != 0
 
 
+def test_create_task_parses_assignees_into_int_list(monkeypatch):
+    result, fake_client = _invoke_create_task(monkeypatch, ["--assignees", "123,456"])
+
+    assert result.exit_code == 0
+    assert fake_client.calls[0]["assignees"] == [123, 456]
+
+
+def test_create_task_single_assignee(monkeypatch):
+    result, fake_client = _invoke_create_task(monkeypatch, ["--assignees", "123"])
+
+    assert result.exit_code == 0
+    assert fake_client.calls[0]["assignees"] == [123]
+
+
+def test_create_task_without_assignees_sends_no_assignees_field(monkeypatch):
+    result, fake_client = _invoke_create_task(monkeypatch, [])
+
+    assert result.exit_code == 0
+    assert "assignees" not in fake_client.calls[0]
+
+
+def test_create_task_passes_due_date(monkeypatch):
+    result, fake_client = _invoke_create_task(monkeypatch, ["--due-date", "1735689600000"])
+
+    assert result.exit_code == 0
+    assert fake_client.calls[0]["due_date"] == 1735689600000
+
+
+def test_create_task_without_due_date_sends_no_due_date_field(monkeypatch):
+    result, fake_client = _invoke_create_task(monkeypatch, [])
+
+    assert result.exit_code == 0
+    assert "due_date" not in fake_client.calls[0]
+
+
 def test_set_status_calls_client_with_task_id_and_status(monkeypatch):
     fake_client = FakeClient()
     monkeypatch.setattr("harness.cli._client", lambda: fake_client)
