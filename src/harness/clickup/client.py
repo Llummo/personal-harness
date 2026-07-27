@@ -59,3 +59,6 @@ class ClickUpClient:
     ) -> dict:
         body = {"name": name, "description": description or "", **fields}
         return self._request("POST", f"/list/{list_id}/task", json=body)
+
+    def update_task_status(self, task_id: str, status: str) -> dict:
+        return self._request("PUT", f"/task/{task_id}", json={"status": status})

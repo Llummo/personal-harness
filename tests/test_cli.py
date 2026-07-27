@@ -6,10 +6,15 @@ from harness.cli import cli
 class FakeClient:
     def __init__(self):
         self.calls = []
+        self.status_calls = []
 
     def create_task(self, list_id, name, description=None, **fields):
         self.calls.append({"list_id": list_id, "name": name, "description": description, **fields})
         return {"id": "task1", "name": name}
+
+    def update_task_status(self, task_id, status):
+        self.status_calls.append({"task_id": task_id, "status": status})
+        return {"id": task_id, "status": {"status": status}}
 
 
 def _invoke_create_task(monkeypatch, extra_args):
@@ -62,3 +67,15 @@ def test_create_task_rejects_invalid_priority(monkeypatch):
     result, _ = _invoke_create_task(monkeypatch, ["--priority", "urgentish"])
 
     assert result.exit_code != 0
+
+
+def test_set_status_calls_client_with_task_id_and_status(monkeypatch):
+    fake_client = FakeClient()
+    monkeypatch.setattr("harness.cli._client", lambda: fake_client)
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["clickup", "set-status", "--task-id", "T1", "--status", "done"])
+
+    assert result.exit_code == 0
+    assert fake_client.status_calls == [{"task_id": "T1", "status": "done"}]
+    assert '"status": "done"' in result.output

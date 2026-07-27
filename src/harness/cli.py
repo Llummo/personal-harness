@@ -84,5 +84,13 @@ def create_task(list_id: str | None, name: str, description: str | None, priorit
     click.echo(json.dumps(task, indent=2))
 
 
+@clickup.command("set-status")
+@click.option("--task-id", required=True)
+@click.option("--status", required=True, help="A status name valid for the task's list, e.g. \"done\".")
+def set_status(task_id: str, status: str):
+    task = _client().update_task_status(task_id, status)
+    click.echo(json.dumps(task, indent=2))
+
+
 if __name__ == "__main__":
     cli()
