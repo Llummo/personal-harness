@@ -160,3 +160,30 @@ class LinearClient:
         if not result.get("success"):
             raise LinearAPIError(f"Linear issue state update failed: {result}")
         return result["issue"]
+
+    def update_issue(
+        self, issue_id: str, *, title: str | None = None, description: str | None = None
+    ) -> dict:
+        """Edit an existing issue's content. Only the fields actually given
+        are sent, so this never blanks out something it wasn't asked to
+        change."""
+        issue_input: dict = {}
+        if title is not None:
+            issue_input["title"] = title
+        if description is not None:
+            issue_input["description"] = description
+        if not issue_input:
+            raise ValueError("Provide at least one field to update")
+
+        query = """
+        mutation($issueId: String!, $input: IssueUpdateInput!) {
+          issueUpdate(id: $issueId, input: $input) {
+            success
+            issue { id identifier title description url state { id name } }
+          }
+        }
+        """
+        result = self._request(query, {"issueId": issue_id, "input": issue_input})["issueUpdate"]
+        if not result.get("success"):
+            raise LinearAPIError(f"Linear issue update failed: {result}")
+        return result["issue"]

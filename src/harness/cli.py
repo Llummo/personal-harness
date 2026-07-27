@@ -114,6 +114,17 @@ def set_status(task_id: str, status: str):
     click.echo(json.dumps(task, indent=2))
 
 
+@clickup.command("update-task")
+@click.option("--task-id", required=True)
+@click.option("--name", default=None, help="New task name. Left unchanged when omitted.")
+@click.option("--description", default=None, help="New task description. Left unchanged when omitted.")
+def update_task(task_id: str, name: str | None, description: str | None):
+    if name is None and description is None:
+        raise click.UsageError("Provide --name and/or --description.")
+    task = _client().update_task(task_id, name=name, description=description)
+    click.echo(json.dumps(task, indent=2))
+
+
 @cli.group()
 def linear():
     """Linear operations."""
@@ -202,6 +213,17 @@ def linear_create_issue(
 @click.option("--state-id", required=True, help="A workflow state id valid for the issue's team.")
 def linear_set_state(issue_id: str, state_id: str):
     issue = _linear_client().update_issue_state(issue_id, state_id)
+    click.echo(json.dumps(issue, indent=2))
+
+
+@linear.command("update-issue")
+@click.option("--issue-id", required=True)
+@click.option("--title", default=None, help="New issue title. Left unchanged when omitted.")
+@click.option("--description", default=None, help="New issue description. Left unchanged when omitted.")
+def linear_update_issue(issue_id: str, title: str | None, description: str | None):
+    if title is None and description is None:
+        raise click.UsageError("Provide --title and/or --description.")
+    issue = _linear_client().update_issue(issue_id, title=title, description=description)
     click.echo(json.dumps(issue, indent=2))
 
 

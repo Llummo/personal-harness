@@ -182,3 +182,38 @@ def test_create_issue_omits_parent_id_when_not_given():
     client.create_issue("team-1", "Top level issue")
 
     assert "parentId" not in captured["variables"]["input"]
+
+
+@responses.activate
+def test_update_issue_sends_only_the_given_fields():
+    captured = {}
+
+    def callback(request):
+        captured.update(json.loads(request.body))
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps({"data": {"issueUpdate": {"success": True, "issue": {"id": "i1"}}}}),
+        )
+
+    responses.add_callback(responses.POST, API_URL, callback=callback, content_type="application/json")
+
+    LinearClient("lin_api_test").update_issue("i1", description="nuevo cuerpo")
+
+    assert captured["variables"]["input"] == {"description": "nuevo cuerpo"}
+
+
+@responses.activate
+def test_update_issue_raises_when_not_successful():
+    responses.add(
+        responses.POST, API_URL,
+        json={"data": {"issueUpdate": {"success": False, "issue": None}}}, status=200,
+    )
+
+    with pytest.raises(LinearAPIError, match="issue update failed"):
+        LinearClient("lin_api_test").update_issue("i1", title="x")
+
+
+def test_update_issue_requires_at_least_one_field():
+    with pytest.raises(ValueError, match="at least one field"):
+        LinearClient("lin_api_test").update_issue("i1")

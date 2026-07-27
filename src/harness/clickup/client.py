@@ -62,3 +62,18 @@ class ClickUpClient:
 
     def update_task_status(self, task_id: str, status: str) -> dict:
         return self._request("PUT", f"/task/{task_id}", json={"status": status})
+
+    def update_task(
+        self, task_id: str, *, name: str | None = None, description: str | None = None, **fields
+    ) -> dict:
+        """Edit an existing task's content. Only the fields actually given
+        are sent, so this never blanks out something it wasn't asked to
+        change."""
+        body: dict = dict(fields)
+        if name is not None:
+            body["name"] = name
+        if description is not None:
+            body["description"] = description
+        if not body:
+            raise ValueError("Provide at least one field to update")
+        return self._request("PUT", f"/task/{task_id}", json=body)
