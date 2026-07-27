@@ -217,3 +217,72 @@ def test_update_issue_raises_when_not_successful():
 def test_update_issue_requires_at_least_one_field():
     with pytest.raises(ValueError, match="at least one field"):
         LinearClient("lin_api_test").update_issue("i1")
+
+
+# ---------------------------------------------------------------------------
+# Pagination — a single request returns at most PAGE_SIZE issues, so a team
+# larger than one page was silently truncated before this.
+# ---------------------------------------------------------------------------
+
+
+def _issue_page(nodes, has_next, cursor):
+    return {
+        "data": {
+            "team": {
+                "issues": {
+                    "nodes": nodes,
+                    "pageInfo": {"hasNextPage": has_next, "endCursor": cursor},
+                }
+            }
+        }
+    }
+
+
+@responses.activate
+def test_get_issues_follows_every_page():
+    pages = [
+        _issue_page([{"id": f"i{n}"} for n in range(250)], True, "cur1"),
+        _issue_page([{"id": f"j{n}"} for n in range(250)], True, "cur2"),
+        _issue_page([{"id": "k0"}], False, None),
+    ]
+    seen_cursors = []
+
+    def callback(request):
+        body = json.loads(request.body)
+        seen_cursors.append(body["variables"]["after"])
+        return (200, {"Content-Type": "application/json"}, json.dumps(pages[len(seen_cursors) - 1]))
+
+    responses.add_callback(responses.POST, API_URL, callback=callback, content_type="application/json")
+
+    issues = LinearClient("lin_api_test").get_issues("team-1")
+
+    assert len(issues) == 501
+    # first request has no cursor, then it follows endCursor each time
+    assert seen_cursors == [None, "cur1", "cur2"]
+
+
+@responses.activate
+def test_get_issues_stops_at_the_limit():
+    def callback(request):
+        return (
+            200,
+            {"Content-Type": "application/json"},
+            json.dumps(_issue_page([{"id": f"i{n}"} for n in range(250)], True, "cur1")),
+        )
+
+    responses.add_callback(responses.POST, API_URL, callback=callback, content_type="application/json")
+
+    issues = LinearClient("lin_api_test").get_issues("team-1", limit=10)
+
+    assert len(issues) == 10
+    assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_get_issues_single_page_makes_one_request():
+    responses.add(responses.POST, API_URL, json=_issue_page([{"id": "i1"}], False, None), status=200)
+
+    issues = LinearClient("lin_api_test").get_issues("team-1")
+
+    assert len(issues) == 1
+    assert len(responses.calls) == 1

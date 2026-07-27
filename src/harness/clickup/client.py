@@ -47,8 +47,26 @@ class ClickUpClient:
     def get_task(self, task_id: str) -> dict:
         return self._request("GET", f"/task/{task_id}")
 
-    def get_tasks(self, list_id: str) -> list[dict]:
-        return self._request("GET", f"/list/{list_id}/task")["tasks"]
+    def get_tasks(self, list_id: str, limit: int | None = None) -> list[dict]:
+        """Every task in the list, following ClickUp's page pagination.
+
+        ClickUp returns at most 100 tasks per page and reports whether the
+        page was the last one, so a single call silently truncates a list
+        of any real size. `limit` caps the total when a caller only wants
+        the first N.
+        """
+        tasks: list[dict] = []
+        page = 0
+        while True:
+            payload = self._request("GET", f"/list/{list_id}/task", params={"page": page})
+            batch = payload.get("tasks") or []
+            tasks.extend(batch)
+            if payload.get("last_page", True) or not batch:
+                break
+            if limit is not None and len(tasks) >= limit:
+                break
+            page += 1
+        return tasks[:limit] if limit is not None else tasks
 
     def create_task(
         self,

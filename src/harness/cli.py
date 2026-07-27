@@ -64,8 +64,14 @@ def get_task(task_id: str):
 
 @clickup.command("tasks")
 @click.option("--list-id", required=True)
-def tasks(list_id: str):
-    click.echo(json.dumps(_client().get_tasks(list_id), indent=2))
+@click.option(
+    "--limit",
+    default=None,
+    type=int,
+    help="Maximum tasks to return. Omit to fetch every task in the list.",
+)
+def tasks(list_id: str, limit: int | None):
+    click.echo(json.dumps(_client().get_tasks(list_id, limit=limit), indent=2))
 
 
 @clickup.command("create-task")
@@ -160,9 +166,14 @@ def linear_projects(team_id: str):
 
 @linear.command("issues")
 @click.option("--team-id", required=True)
-@click.option("--first", default=50, type=int, show_default=True)
-def linear_issues(team_id: str, first: int):
-    click.echo(json.dumps(_linear_client().get_issues(team_id, first=first), indent=2))
+@click.option(
+    "--limit",
+    default=None,
+    type=int,
+    help="Maximum issues to return. Omit to fetch every issue on the team.",
+)
+def linear_issues(team_id: str, limit: int | None):
+    click.echo(json.dumps(_linear_client().get_issues(team_id, limit=limit), indent=2))
 
 
 @linear.command("get-issue")

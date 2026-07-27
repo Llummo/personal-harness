@@ -10,6 +10,10 @@ API_URL = "https://api.linear.app/graphql"
 LINEAR_PRIORITY = {"urgent": 1, "high": 2, "normal": 3, "low": 4}
 
 
+# Linear caps pagination at 250 records per request.
+PAGE_SIZE = 250
+
+
 class LinearAPIError(RuntimeError):
     def __init__(self, message: str, payload: dict | None = None):
         self.payload = payload
@@ -71,21 +75,46 @@ class LinearClient:
         """
         return self._request(query, {"teamId": team_id})["team"]["projects"]["nodes"]
 
-    def get_issues(self, team_id: str, first: int = 50) -> list[dict]:
+    def get_issues(self, team_id: str, limit: int | None = None) -> list[dict]:
+        """Every issue on the team, following Linear's cursor pagination.
+
+        Linear returns at most PAGE_SIZE issues per request, so a single
+        call silently truncates a team of any real size — this walks
+        `pageInfo.endCursor` until the last page. `limit` caps the total
+        when a caller only wants the first N.
+        """
         query = """
-        query($teamId: String!, $first: Int!) {
+        query($teamId: String!, $first: Int!, $after: String) {
           team(id: $teamId) {
-            issues(first: $first) {
+            issues(first: $first, after: $after) {
               nodes {
                 id identifier title description priority dueDate
                 state { id name type }
                 assignee { id name email }
               }
+              pageInfo { hasNextPage endCursor }
             }
           }
         }
         """
-        return self._request(query, {"teamId": team_id, "first": first})["team"]["issues"]["nodes"]
+        issues: list[dict] = []
+        cursor: str | None = None
+        while True:
+            page_size = PAGE_SIZE if limit is None else min(PAGE_SIZE, limit - len(issues))
+            if page_size <= 0:
+                break
+            payload = self._request(query, {"teamId": team_id, "first": page_size, "after": cursor})
+            page = payload["team"]["issues"]
+            issues.extend(page["nodes"])
+            info = page.get("pageInfo") or {}
+            cursor = info.get("endCursor")
+            if not info.get("hasNextPage") or not cursor:
+                break
+            if limit is not None and len(issues) >= limit:
+                break
+        # Truncate ourselves rather than trusting the server to have honored
+        # `first` — the caller asked for at most `limit`.
+        return issues[:limit] if limit is not None else issues
 
     def get_issue(self, issue_id: str) -> dict:
         query = """

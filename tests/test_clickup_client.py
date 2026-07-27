@@ -2,7 +2,7 @@ import pytest
 import responses
 
 from harness.clickup import ClickUpClient
-from harness.clickup.client import ClickUpAPIError
+from harness.clickup.client import API_BASE, ClickUpAPIError
 
 
 @responses.activate
@@ -108,3 +108,51 @@ def test_update_task_status_raises_on_invalid_status():
 
     with pytest.raises(ClickUpAPIError):
         client.update_task_status("task1", "not-a-real-status")
+
+
+# ---------------------------------------------------------------------------
+# Pagination — ClickUp returns at most 100 tasks per page, so a longer list
+# was silently truncated before this.
+# ---------------------------------------------------------------------------
+
+
+@responses.activate
+def test_get_tasks_follows_every_page():
+    responses.add(
+        responses.GET, f"{API_BASE}/list/L1/task",
+        json={"tasks": [{"id": f"t{n}"} for n in range(100)], "last_page": False}, status=200,
+    )
+    responses.add(
+        responses.GET, f"{API_BASE}/list/L1/task",
+        json={"tasks": [{"id": "t100"}], "last_page": True}, status=200,
+    )
+
+    tasks = ClickUpClient("token").get_tasks("L1")
+
+    assert len(tasks) == 101
+    assert "page=0" in responses.calls[0].request.url
+    assert "page=1" in responses.calls[1].request.url
+
+
+@responses.activate
+def test_get_tasks_stops_at_the_limit():
+    responses.add(
+        responses.GET, f"{API_BASE}/list/L1/task",
+        json={"tasks": [{"id": f"t{n}"} for n in range(100)], "last_page": False}, status=200,
+    )
+
+    tasks = ClickUpClient("token").get_tasks("L1", limit=5)
+
+    assert len(tasks) == 5
+    assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_get_tasks_single_page_makes_one_request():
+    responses.add(
+        responses.GET, f"{API_BASE}/list/L1/task",
+        json={"tasks": [{"id": "t1"}], "last_page": True}, status=200,
+    )
+
+    assert len(ClickUpClient("token").get_tasks("L1")) == 1
+    assert len(responses.calls) == 1
