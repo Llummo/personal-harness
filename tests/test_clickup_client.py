@@ -156,3 +156,17 @@ def test_get_tasks_single_page_makes_one_request():
 
     assert len(ClickUpClient("token").get_tasks("L1")) == 1
     assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_get_tasks_asks_clickup_to_include_subtasks():
+    # Without this, tickets created as subtasks (ticket hierarchies) are
+    # silently omitted and a full list looks like most of it went missing.
+    responses.add(
+        responses.GET, f"{API_BASE}/list/L1/task",
+        json={"tasks": [{"id": "t1"}], "last_page": True}, status=200,
+    )
+
+    ClickUpClient("token").get_tasks("L1")
+
+    assert "subtasks=true" in responses.calls[0].request.url

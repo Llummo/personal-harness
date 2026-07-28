@@ -58,7 +58,12 @@ class ClickUpClient:
         tasks: list[dict] = []
         page = 0
         while True:
-            payload = self._request("GET", f"/list/{list_id}/task", params={"page": page})
+            # subtasks=true is required or ClickUp silently omits every subtask,
+            # which makes a list of parent tickets look like most of its
+            # contents went missing.
+            payload = self._request(
+                "GET", f"/list/{list_id}/task", params={"page": page, "subtasks": "true"}
+            )
             batch = payload.get("tasks") or []
             tasks.extend(batch)
             if payload.get("last_page", True) or not batch:
